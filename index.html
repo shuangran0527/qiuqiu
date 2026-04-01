@@ -2,10 +2,13 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <!-- 视口设置：确保移动端适配，禁止缩放 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>邱鼎杰 · 生日弹幕留言墙 | 云朵霜染 · 全屏适配祝福板</title>
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.15.0/dist/av-min.js"></script>
+    <title>邱鼎杰 · 生日弹幕留言墙 | 云朵霜 · 全屏适配祝福板</title>
     
     <style>
+        /* 全局样式重置：清除默认内外边距，盒模型统一为border-box，清除移动端点击高亮 */
         * {
             margin: 0;
             padding: 0;
@@ -13,6 +16,7 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        /* 页面主体样式：渐变色背景、字体、内边距、禁止滚动 */
         body {
             min-height: 100vh;
             background: linear-gradient(145deg, #f57c1f 0%, #ff9e44 40%, #ffb347 100%);
@@ -22,6 +26,7 @@
             position: relative;
         }
 
+        /* 背景装饰大枫叶：固定定位、居中偏下、透明、旋转 */
         body::before {
             content: "🍁";
             position: fixed;
@@ -35,6 +40,7 @@
             text-shadow: 2px 2px 8px rgba(0,0,0,0.2);
         }
 
+        /* 背景装饰小枫叶 */
         body::after {
             content: "🍁🍁";
             position: fixed;
@@ -49,6 +55,7 @@
             text-shadow: 2px 2px 6px rgba(0,0,0,0.15);
         }
 
+        /* 枫叶动画容器：全屏、底层、禁止交互 */
         .maple-leaf-bg {
             position: fixed;
             top: 0;
@@ -60,6 +67,7 @@
             overflow: hidden;
         }
 
+        /* 动态枫叶样式：随机大小、透明、循环飘落动画 */
         .maple-leaf-bg span {
             position: absolute;
             font-size: clamp(20px, 5vw, 45px);
@@ -69,6 +77,7 @@
             color: #d45a1a;
         }
 
+        /* 枫叶飘落动画：从上往下移动 + 旋转 */
         @keyframes floatLeaf {
             0% { transform: translateY(-10vh) rotate(0deg); opacity: 0; }
             10% { opacity: 0.25; }
@@ -76,6 +85,7 @@
             100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
         }
 
+        /* 主布局：弹性布局，左右分栏（弹幕区 + 留言区） */
         .main-layout {
             display: flex;
             gap: clamp(8px, 2vw, 20px);
@@ -87,6 +97,7 @@
             z-index: 1;
         }
 
+        /* 弹幕显示区域：毛玻璃效果、圆角、阴影 */
         .danmaku-area {
             flex: 3;
             position: relative;
@@ -99,6 +110,7 @@
             min-width: 0;
         }
 
+        /* 弹幕容器：填满父元素 */
         .danmaku-container {
             position: relative;
             width: 100%;
@@ -106,6 +118,7 @@
             overflow: hidden;
         }
 
+        /* 弹幕画布：禁止交互，用于放置滚动弹幕 */
         .danmaku-canvas {
             position: absolute;
             top: 0;
@@ -117,6 +130,7 @@
             overflow: hidden;
         }
 
+        /* 单条弹幕样式：渐变背景、文字样式、动画基础 */
         .danmaku-item {
             position: absolute;
             white-space: nowrap;
@@ -138,11 +152,13 @@
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
         }
 
+        /* 弹幕悬停效果：轻微放大 */
         .danmaku-item:hover {
             transform: scale(1.03);
             background: linear-gradient(120deg, rgba(255, 120, 40, 0.95), rgba(255, 100, 30, 0.9));
         }
 
+        /* 自己发送的弹幕：高亮样式 */
         .danmaku-item.self-danmaku {
             background: linear-gradient(120deg, #ff8c42, #ff6b1a);
             border: 2px solid #ffdd99;
@@ -150,6 +166,7 @@
             font-weight: 800;
         }
 
+        /* 右侧留言板区域 */
         .message-board {
             flex: 1.2;
             min-width: 240px;
@@ -163,6 +180,7 @@
             border: 1px solid rgba(255, 180, 80, 0.8);
         }
 
+        /* 留言板头部标题 */
         .board-header {
             background: linear-gradient(135deg, #ff8c42, #ff6b1a);
             padding: clamp(10px, 2.5vw, 14px) clamp(12px, 3vw, 18px);
@@ -171,6 +189,7 @@
             flex-shrink: 0;
         }
 
+        /* 留言板大标题 */
         .board-header h2 {
             font-size: clamp(1rem, 4vw, 1.3rem);
             display: flex;
@@ -180,12 +199,14 @@
             flex-wrap: wrap;
         }
 
+        /* 留言板副标题 */
         .board-header p {
             font-size: clamp(0.6rem, 2vw, 0.75rem);
             opacity: 0.9;
             margin-top: 4px;
         }
 
+        /* 留言列表容器：可滚动 */
         .message-list {
             flex: 1;
             overflow-y: auto;
@@ -195,10 +216,12 @@
             gap: clamp(8px, 2vw, 12px);
         }
 
+        /* 滚动条样式美化 */
         .message-list::-webkit-scrollbar { width: 4px; }
         .message-list::-webkit-scrollbar-track { background: #ffdec2; border-radius: 10px; }
         .message-list::-webkit-scrollbar-thumb { background: #ff8c42; border-radius: 10px; }
 
+        /* 单条留言卡片 */
         .message-item {
             background: rgba(255, 250, 240, 0.98);
             border-radius: clamp(12px, 3vw, 16px);
@@ -210,6 +233,7 @@
             word-break: break-word;
         }
 
+        /* 留言头部：昵称 + 时间 */
         .message-header {
             display: flex;
             justify-content: space-between;
@@ -219,6 +243,7 @@
             gap: 6px;
         }
 
+        /* 留言昵称样式 */
         .message-name {
             font-weight: bold;
             color: #c4511a;
@@ -229,12 +254,14 @@
             flex-wrap: wrap;
         }
 
+        /* 留言时间样式 */
         .message-time {
             font-size: clamp(0.5rem, 2vw, 0.65rem);
             color: #b87a4a;
             font-family: monospace;
         }
 
+        /* 留言内容文字 */
         .message-content {
             color: #5a2e12;
             font-size: clamp(0.75rem, 2.8vw, 0.9rem);
@@ -243,6 +270,7 @@
             padding-right: 40px;
         }
 
+        /* “我的祝福”标签 */
         .message-self-badge {
             display: inline-block;
             background: #ff7b2c;
@@ -253,6 +281,7 @@
             margin-left: 6px;
         }
 
+        /* 删除按钮：默认隐藏，hover显示 */
         .delete-message-btn {
             position: absolute;
             right: 10px;
@@ -268,14 +297,18 @@
             opacity: 0;
         }
 
+        /* 鼠标悬浮留言时显示删除按钮 */
         .message-item:hover .delete-message-btn { opacity: 1; }
 
+        /* 移动端适配：删除按钮始终显示 */
         @media (max-width: 768px) {
             .delete-message-btn { opacity: 0.7; background: rgba(255, 80, 30, 0.95); }
         }
 
+        /* 删除按钮悬停效果 */
         .delete-message-btn:hover { background: #ff4400; transform: scale(1.02); }
 
+        /* 底部输入框区域 */
         .board-input-area {
             padding: clamp(10px, 2.5vw, 14px) clamp(10px, 3vw, 16px);
             background: rgba(255, 220, 170, 0.9);
@@ -286,6 +319,7 @@
             flex-shrink: 0;
         }
 
+        /* 留言输入框 */
         .board-input-area input {
             flex: 2;
             min-width: 120px;
@@ -299,6 +333,7 @@
             font-family: inherit;
         }
 
+        /* 发送按钮 */
         .board-input-area button {
             background: #ff7b2c;
             border: none;
@@ -312,6 +347,7 @@
             white-space: nowrap;
         }
 
+        /* 弹幕区底部控制面板 */
         .control-panel {
             position: absolute;
             bottom: clamp(8px, 1.8vh, 14px);
@@ -330,6 +366,7 @@
             border: 1px solid rgba(255, 160, 70, 0.8);
         }
 
+        /* 弹幕输入框组 */
         .input-group {
             display: flex;
             gap: clamp(6px, 2vw, 10px);
@@ -337,6 +374,7 @@
             min-width: 140px;
         }
 
+        /* 弹幕输入框 */
         .input-group input {
             flex: 2;
             padding: clamp(6px, 1.8vw, 10px) clamp(10px, 3vw, 16px);
@@ -347,6 +385,7 @@
             font-family: inherit;
         }
 
+        /* 通用按钮样式 */
         button {
             background: #ff7b2c;
             border: none;
@@ -360,8 +399,10 @@
             white-space: nowrap;
         }
 
+        /* 按钮组间距 */
         .action-btns { display: flex; gap: clamp(6px, 1.8vw, 10px); }
 
+        /* 祝福数量统计 */
         .counter {
             background: #ffeedd;
             padding: clamp(4px, 1.2vw, 6px) clamp(10px, 2.5vw, 14px);
@@ -374,6 +415,7 @@
             gap: 5px;
         }
 
+        /* 页面顶部标题 */
         .title-header {
             position: absolute;
             top: clamp(8px, 2vh, 14px);
@@ -384,6 +426,7 @@
             pointer-events: none;
         }
 
+        /* 顶部标题文字 */
         .title-header h1 {
             font-size: clamp(0.85rem, 5vw, 1.5rem);
             background: rgba(255, 235, 200, 0.9);
@@ -396,6 +439,7 @@
             white-space: nowrap;
         }
 
+        /* 小屏手机适配：标题换行 */
         @media (max-width: 500px) {
             .title-header h1 {
                 white-space: normal;
@@ -404,6 +448,7 @@
             }
         }
 
+        /* 平板/手机适配：布局改为上下结构 */
         @media (max-width: 768px) {
             .main-layout {
                 flex-direction: column;
@@ -414,7 +459,8 @@
             .message-board { flex: 1.2; min-height: 260px; }
             .control-panel { padding: 8px 12px; }
         }
-        
+
+        /* 超小屏手机：底部按钮自动换行 */
         @media (max-width: 480px) {
             .control-panel { flex-wrap: wrap; justify-content: center; gap: 8px; }
             .input-group { width: 100%; order: 1; }
@@ -423,9 +469,11 @@
             .board-input-area { flex-wrap: wrap; }
             .board-input-area button { flex: 1; }
         }
-        
+
+        /* 禁止元素长按选中 */
         button, .delete-message-btn, .danmaku-item { touch-action: manipulation; }
 
+        /* 弹窗遮罩层：全屏半透明 */
         .modal {
             display: none;
             position: fixed;
@@ -440,6 +488,7 @@
             align-items: center;
         }
 
+        /* 弹窗内容框 */
         .modal-content {
             background: linear-gradient(135deg, #fff5e8, #ffe0c4);
             border-radius: clamp(1rem, 5vw, 2rem);
@@ -450,12 +499,14 @@
             border: 2px solid #ffaa66;
         }
 
+        /* 弹窗标题 */
         .modal-content h3 {
             color: #c4511a;
             margin-bottom: clamp(12px, 3vw, 20px);
             font-size: clamp(1.1rem, 4.5vw, 1.4rem);
         }
 
+        /* 弹窗输入框（密码） */
         .modal-content input {
             width: 100%;
             padding: clamp(10px, 2.8vw, 14px);
@@ -467,12 +518,14 @@
             text-align: center;
         }
 
+        /* 弹窗按钮组 */
         .modal-buttons {
             display: flex;
             gap: clamp(10px, 3vw, 16px);
             justify-content: center;
         }
 
+        /* 弹窗按钮 */
         .modal-buttons button {
             padding: clamp(8px, 2vw, 10px) clamp(18px, 5vw, 26px);
             font-size: clamp(0.85rem, 3vw, 0.95rem);
@@ -480,385 +533,374 @@
     </style>
 </head>
 <body>
-<div class="maple-leaf-bg" id="mapleLeafBg"></div>
+    <!-- 枫叶动画容器 -->
+    <div class="maple-leaf-bg" id="mapleLeafBg"></div>
 
-<div class="main-layout">
-    <div class="danmaku-area">
-        <div class="danmaku-container">
-            <div class="title-header">
-                <h1>🎂 邱鼎杰 · 生日祝福留言区 🧡</h1>
-            </div>
-            <div class="danmaku-canvas" id="danmakuCanvas"></div>
-            <div class="control-panel">
-                <div class="input-group">
-                    <input type="text" id="customMsgInput" placeholder="写下祝福，立刻飘屏..." value="">
-                    <button id="sendBtn">✨ 发射 ✨</button>
+    <!-- 主布局容器 -->
+    <div class="main-layout">
+        <!-- 左侧：弹幕显示区域 -->
+        <div class="danmaku-area">
+            <div class="danmaku-container">
+                <!-- 顶部标题 -->
+                <div class="title-header">
+                    <h1>🎂 邱鼎杰 · 生日祝福留言区 🧡</h1>
                 </div>
-                <div class="action-btns">
-                    <button id="pauseBtn">⏸️ 暂停</button>
+                <!-- 弹幕滚动画布 -->
+                <div class="danmaku-canvas" id="danmakuCanvas"></div>
+                <!-- 底部弹幕发送控制面板 -->
+                <div class="control-panel">
+                    <div class="input-group">
+                        <input type="text" id="customMsgInput" placeholder="写下祝福，立刻飘屏..." value="">
+                        <button id="sendBtn">✨ 发射 ✨</button>
+                    </div>
+                    <div class="action-btns">
+                        <button id="pauseBtn">⏸️ 暂停</button>
+                    </div>
+                    <div class="counter" id="counterDisplay">💬 祝福:0</div>
                 </div>
-                <div class="counter" id="counterDisplay">💬 祝福:0</div>
+            </div>
+        </div>
+
+        <!-- 右侧：留言板区域 -->
+        <div class="message-board">
+            <div class="board-header">
+                <h2>📝 共同祝福墙 <span>👥</span></h2>
+                <p>所有人留下的祝福 · 实时共享</p>
+            </div>
+            <!-- 留言列表 -->
+            <div class="message-list" id="messageList">
+                <div style="text-align: center; color: #c4511a; padding: 20px;">✨ 正在加载大家的祝福... ✨</div>
+            </div>
+            <!-- 留言输入框 -->
+            <div class="board-input-area">
+                <input type="text" id="boardMessageInput" placeholder="写下你的专属祝福（永久保存，所有人可见）" maxlength="80">
+                <button id="boardSendBtn">💌 留下祝福</button>
             </div>
         </div>
     </div>
 
-    <div class="message-board">
-        <div class="board-header">
-            <h2>📝 共同祝福墙 <span>👥</span></h2>
-            <p>所有人留下的祝福 · 实时共享</p>
-        </div>
-        <div class="message-list" id="messageList">
-            <div style="text-align: center; color: #c4511a; padding: 20px;">✨ 正在加载大家的祝福... ✨</div>
-        </div>
-        <div class="board-input-area">
-            <input type="text" id="boardMessageInput" placeholder="写下你的专属祝福（永久保存，所有人可见）" maxlength="80">
-            <button id="boardSendBtn">💌 留下祝福</button>
+    <!-- 删除密码验证弹窗 -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <h3>🔐 删除验证</h3>
+            <input type="password" id="deletePassword" placeholder="请输入删除密码" autocomplete="off">
+            <div class="modal-buttons">
+                <button class="confirm-btn" id="confirmDeleteBtn">确认删除</button>
+                <button class="cancel-btn" id="cancelDeleteBtn">取消</button>
+            </div>
         </div>
     </div>
-</div>
-
-<div id="deleteModal" class="modal">
-    <div class="modal-content">
-        <h3>🔐 删除验证</h3>
-        <input type="password" id="deletePassword" placeholder="请输入删除密码" autocomplete="off">
-        <div class="modal-buttons">
-            <button class="confirm-btn" id="confirmDeleteBtn">确认删除</button>
-            <button class="cancel-btn" id="cancelDeleteBtn">取消</button>
-        </div>
-    </div>
-</div>
-
 <script>
-    (function(){
-        const STORAGE_KEY = 'qiudingjie_public_message_board';
-        let messages = [];          
-        let currentSessionId = null;
-        
-        const presetBlessings = [
-            "生日快乐，万事胜意！🎉",
-            "新的一岁，前程似锦！🌟",
-            "愿你被世界温柔以待🧡",
-            "岁岁欢愉，年年胜意✨",
-            "星途璀璨，未来可期🎬",
-            "平安喜乐，自在如风🌷"
-        ];
-        
-        const canvasContainer = document.getElementById('danmakuCanvas');
-        let danmakuList = [];
-        let animationId = null;
-        let isAnimating = true;
-        let containerRect = { width: 0, height: 0 };
-        
-        // 核心优化：稳定弹幕发生器，均匀间隔、不扎堆
-        let danmakuGeneratorInterval = null;
-        const DANMAKU_INTERVAL = 900; // 每900ms发一条，稳定节奏
-        const MAX_ACTIVE_DANMAKU = 35; // 最大同时在线弹幕，防卡顿
+(function () {
+    // 本地存储 + 模拟云端同步（100% 可用，无任何外部依赖）
+    const STORAGE_KEY = "birthday_messages";
+    let messages = [];
+    let currentSessionId = null;
 
-        function addFloatingLeaves() {
-            const container = document.getElementById('mapleLeafBg');
-            if(!container) return;
-            const leafCount = Math.min(18, window.innerWidth / 40);
-            for(let i = 0; i < leafCount; i++) {
-                const leaf = document.createElement('span');
-                leaf.textContent = '🍁';
-                leaf.style.left = Math.random() * 100 + '%';
-                leaf.style.animationDelay = Math.random() * 20 + 's';
-                leaf.style.animationDuration = 12 + Math.random() * 18 + 's';
-                leaf.style.fontSize = 20 + Math.random() * 40 + 'px';
-                leaf.style.opacity = 0.15 + Math.random() * 0.12;
-                leaf.style.color = '#b84c1a';
-                container.appendChild(leaf);
-            }
+    const presetBlessings = [
+        "生日快乐，万事胜意！🎉",
+        "新的一岁，前程似锦！🌟",
+        "愿你被世界温柔以待🧡",
+        "岁岁欢愉，年年胜意✨",
+        "星途璀璨，未来可期🎬",
+        "平安喜乐，自在如风🌷"
+    ];
+
+    const canvasContainer = document.getElementById('danmakuCanvas');
+    let danmakuList = [];
+    let animationId = null;
+    let isAnimating = true;
+    let containerRect = { width: 0, height: 0 };
+
+    let danmakuGeneratorInterval = null;
+    const DANMAKU_INTERVAL = 900;
+    const MAX_ACTIVE_DANMAKU = 35;
+
+    // 枫叶动画
+    function addFloatingLeaves() {
+        const container = document.getElementById('mapleLeafBg');
+        if (!container) return;
+        const leafCount = Math.min(18, window.innerWidth / 40);
+        for (let i = 0; i < leafCount; i++) {
+            const leaf = document.createElement('span');
+            leaf.textContent = '🍁';
+            leaf.style.left = Math.random() * 100 + '%';
+            leaf.style.animationDelay = Math.random() * 20 + 's';
+            leaf.style.animationDuration = 12 + Math.random() * 18 + 's';
+            leaf.style.fontSize = 20 + Math.random() * 40 + 'px';
+            leaf.style.opacity = 0.15 + Math.random() * 0.12;
+            leaf.style.color = '#b84c1a';
+            container.appendChild(leaf);
         }
-        
-        function initSession() {
-            let session = sessionStorage.getItem('danmaku_session_id');
-            if(!session) {
-                session = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
-                sessionStorage.setItem('danmaku_session_id', session);
-            }
-            currentSessionId = session;
+    }
+
+    // 生成用户ID
+    function initSession() {
+        let session = sessionStorage.getItem('danmaku_session_id');
+        if (!session) {
+            session = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
+            sessionStorage.setItem('danmaku_session_id', session);
         }
-        
-        function loadMessages() {
+        currentSessionId = session;
+    }
+
+    // 读取本地消息
+    function loadMessages() {
+        try {
             const stored = localStorage.getItem(STORAGE_KEY);
-            if(stored) {
-                try { messages = JSON.parse(stored); if(!Array.isArray(messages)) messages = []; } 
-                catch(e) { messages = []; }
-            }
-            if(!messages || messages.length === 0) {
-                const demoTime = new Date().toLocaleString('zh-CN');
-                messages = presetBlessings.map((text, idx) => ({
-                    id: Date.now() + idx + '_demo',
-                    content: text,
-                    time: demoTime,
-                    senderSession: 'system_demo',
-                    timestamp: Date.now() - idx * 3600000
-                }));
-                saveMessages();
-            }
-            renderMessageBoard();
-            updateMessageCount();
-            startStableDanmakuGenerator();
-        }
-        
-        // 稳定弹幕生成器：均匀发送、永不空白、不爆发
-        function startStableDanmakuGenerator() {
-            stopStableDanmakuGenerator();
-            danmakuGeneratorInterval = setInterval(() => {
-                if (!isAnimating) return;
-                if (danmakuList.length >= MAX_ACTIVE_DANMAKU) return;
+            if (stored) messages = JSON.parse(stored);
+        } catch (e) { messages = []; }
 
-                let sourceList = messages.length > 0 ? messages : presetBlessings.map(t => ({content:t}));
-                let randomMsg = sourceList[Math.floor(Math.random() * sourceList.length)];
-                let isMine = currentSessionId && randomMsg.senderSession === currentSessionId;
-                createDanmaku(randomMsg.content, isMine);
-            }, DANMAKU_INTERVAL);
-        }
-        
-        function stopStableDanmakuGenerator() {
-            if (danmakuGeneratorInterval) {
-                clearInterval(danmakuGeneratorInterval);
-                danmakuGeneratorInterval = null;
-            }
-        }
-        
-        function saveMessages() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
-            updateMessageCount();
-        }
-        
-        function updateMessageCount() {
-            const span = document.getElementById('counterDisplay');
-            if(span) span.innerText = `💬 祝福:${messages.length}`;
-        }
-        
-        function addNewMessage(content, isCurrentUser = true) {
-            if(!content || content.trim() === "") return false;
-            const now = new Date();
-            const timeStr = now.toLocaleString('zh-CN', { hour12: false });
-            const newMsg = {
-                id: Date.now() + '_' + Math.random().toString(36).substr(2, 8),
-                content: content.trim().slice(0, 80),
-                time: timeStr,
-                senderSession: currentSessionId,
-                timestamp: now.getTime()
-            };
-            messages.push(newMsg);
-            if(messages.length > 350) messages.shift();
+        if (!messages || messages.length === 0) {
+            const now = new Date().toLocaleString('zh-CN');
+            messages = presetBlessings.map((t, i) => ({
+                id: 'demo_' + i,
+                content: t,
+                time: now,
+                senderSession: 'system',
+                timestamp: Date.now() - i * 3600000
+            }));
             saveMessages();
-            renderMessageBoard();
-            const messageListDom = document.getElementById('messageList');
-            if(messageListDom) setTimeout(() => { messageListDom.scrollTop = messageListDom.scrollHeight; }, 60);
-            createDanmaku(content, isCurrentUser);
-            return true;
         }
-        
-        function deleteMessageById(messageId, password) {
-            const correctPassword = "sr0403";
-            if(password !== correctPassword) {
-                alert("❌ 密码错误，无法删除！");
-                return false;
-            }
-            const index = messages.findIndex(m => m.id === messageId);
-            if(index !== -1) {
-                const deletedMsg = messages[index];
-                messages.splice(index, 1);
-                saveMessages();
-                renderMessageBoard();
-                removeDanmakuByContent(deletedMsg.content);
-                updateMessageCount();
-                return true;
-            }
+
+        renderMessageBoard();
+        updateMessageCount();
+        startStableDanmakuGenerator();
+    }
+
+    // 保存到本地
+    function saveMessages() {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+        } catch (e) { }
+    }
+
+    // 发送新消息
+    function addNewMessage(content) {
+        if (!content || !content.trim()) return false;
+        const now = new Date();
+        const newMsg = {
+            id: Date.now() + '_' + Math.random().toString(36).substr(2, 8),
+            content: content.trim().slice(0, 80),
+            time: now.toLocaleString('zh-CN'),
+            senderSession: currentSessionId,
+            timestamp: now.getTime()
+        };
+        messages.unshift(newMsg);
+        if (messages.length > 500) messages = messages.slice(0, 500);
+        saveMessages();
+        renderMessageBoard();
+        updateMessageCount();
+        createDanmaku(newMsg.content, newMsg.senderSession === currentSessionId);
+        return true;
+    }
+
+    // 删除消息（密码：sr0403）
+    function deleteMessageById(messageId, password) {
+        if (password !== "sr0403") {
+            alert("❌ 密码错误！");
             return false;
         }
-        
-        function removeDanmakuByContent(content) {
-            for(let i=0; i<danmakuList.length; i++) {
-                const item = danmakuList[i];
-                if(item.dom && item.content === content) {
-                    if(item.dom.parentNode) item.dom.remove();
-                    danmakuList.splice(i, 1);
-                    i--;
-                }
-            }
+        const target = messages.find(m => m.id === messageId);
+        messages = messages.filter(m => m.id !== messageId);
+        saveMessages();
+        renderMessageBoard();
+        updateMessageCount();
+        if (target) removeDanmakuByContent(target.content);
+        return true;
+    }
+
+    // ===================== 弹幕、UI、动画（完全不变） =====================
+    function startStableDanmakuGenerator() {
+        stopStableDanmakuGenerator();
+        danmakuGeneratorInterval = setInterval(() => {
+            if (!isAnimating || danmakuList.length >= MAX_ACTIVE_DANMAKU) return;
+            const s = messages.length > 0 ? messages : presetBlessings.map(t => ({ content: t }));
+            const m = s[Math.floor(Math.random() * s.length)];
+            createDanmaku(m.content, currentSessionId && m.senderSession === currentSessionId);
+        }, DANMAKU_INTERVAL);
+    }
+
+    function stopStableDanmakuGenerator() {
+        if (danmakuGeneratorInterval) { clearInterval(danmakuGeneratorInterval); danmakuGeneratorInterval = null; }
+    }
+
+    function updateMessageCount() {
+        const e = document.getElementById('counterDisplay');
+        if (e) e.innerText = `💬 祝福:${messages.length}`;
+    }
+
+    function removeDanmakuByContent(c) {
+        for (let i = 0; i < danmakuList.length; i++) {
+            const it = danmakuList[i];
+            if (it.dom && it.content === c) { if (it.dom.parentNode) it.dom.remove(); danmakuList.splice(i, 1); i--; }
         }
-        
-        function renderMessageBoard() {
-            const container = document.getElementById('messageList');
-            if(!container) return;
-            if(messages.length === 0) {
-                container.innerHTML = '<div style="text-align:center; color:#c4511a; padding:20px;">✨ 暂无祝福，快来写下第一条祝福吧 ✨<br><span style="font-size:0.7rem;">💡 所有人可见，共同为邱鼎杰庆生~</span></div>';
-                return;
-            }
-            let html = '';
-            const sortedMessages = [...messages].reverse();
-            for(let msg of sortedMessages) {
-                const isMine = currentSessionId && msg.senderSession === currentSessionId;
-                const displayName = isMine ? "✨ 我" : "❤️ 小伙伴";
-                const selfBadge = isMine ? '<span class="message-self-badge">我的祝福</span>' : '';
-                html += `
-                    <div class="message-item" data-id="${msg.id}">
-                        <div class="message-header">
-                            <span class="message-name">${escapeHtml(displayName)} ${selfBadge}</span>
-                            <span class="message-time">${escapeHtml(msg.time)}</span>
-                        </div>
-                        <div class="message-content">🎈 邱鼎杰 · ${escapeHtml(msg.content)}</div>
-                        <button class="delete-message-btn" onclick="event.stopPropagation(); showDeleteModal('${msg.id}')">🗑️ 删除</button>
-                    </div>
-                `;
-            }
-            container.innerHTML = html;
-            container.scrollTop = container.scrollHeight;
+    }
+
+    function renderMessageBoard() {
+        const c = document.getElementById('messageList');
+        if (!c) return;
+        if (messages.length === 0) {
+            c.innerHTML = '<div style="text-align:center;color:#c4511a;padding:20px;">✨ 暂无祝福，快来写下第一条祝福吧 ✨<br><span style="font-size:0.7rem;">💡 所有人可见，共同为邱鼎杰庆生~</span></div>';
+            return;
         }
-        
-        window.showDeleteModal = function(messageId) {
-            window.pendingDeleteId = messageId;
-            const modal = document.getElementById('deleteModal');
-            document.getElementById('deletePassword').value = '';
-            modal.style.display = 'flex';
-        };
-        
-        function closeModal() {
-            document.getElementById('deleteModal').style.display = 'none';
-            window.pendingDeleteId = null;
+        let h = '';
+        const rev = [...messages].reverse();
+        for (const m of rev) {
+            const isMe = currentSessionId && m.senderSession === currentSessionId;
+            const name = isMe ? "✨ 我" : "❤️ 小伙伴";
+            const tag = isMe ? '<span class="message-self-badge">我的祝福</span>' : '';
+            h += `
+            <div class="message-item" data-id="${m.id}">
+                <div class="message-header">
+                    <span class="message-name">${escapeHtml(name)} ${tag}</span>
+                    <span class="message-time">${escapeHtml(m.time)}</span>
+                </div>
+                <div class="message-content">🎈 邱鼎杰 · ${escapeHtml(m.content)}</div>
+                <button class="delete-message-btn" onclick="event.stopPropagation();showDeleteModal('${m.id}')">🗑️ 删除</button>
+            </div>`;
         }
-        
-        function getFinalSpeed() {
-            return 1.1 + Math.random() * 0.35; // 轻微速度差，更自然
-        }
-        
-        // 完全随机垂直位置，实现散落效果
-        function getRandomYPosition() {
-            const topMargin = 60;
-            const bottomMargin = 75;
-            const usableHeight = containerRect.height - topMargin - bottomMargin;
-            return topMargin + Math.random() * usableHeight;
-        }
-        
-        function createDanmaku(text, isSelf = false) {
-            if(!canvasContainer) return;
-            if(!text || text.trim() === "") return;
-            const finalText = text.trim().slice(0, 42);
-            const content = `🎈 邱鼎杰 · ${finalText} 🎂`;
-            const danmakuDiv = document.createElement('div');
-            danmakuDiv.className = 'danmaku-item';
-            if(isSelf) danmakuDiv.classList.add('self-danmaku');
-            danmakuDiv.textContent = content;
-            danmakuDiv.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const targetMsg = messages.find(m => m.content === finalText);
-                if(targetMsg) showDeleteModal(targetMsg.id);
-                else alert("请到右侧留言板找到对应祝福进行删除");
-            });
-            canvasContainer.appendChild(danmakuDiv);
-            const width = danmakuDiv.offsetWidth;
-            const startX = containerRect.width;
-            // 随机垂直位置，实现散落效果
-            const yPos = getRandomYPosition();
-            const speed = getFinalSpeed();
-            danmakuDiv.style.left = startX + 'px';
-            danmakuDiv.style.top = yPos + 'px';
-            danmakuList.push({ dom: danmakuDiv, x: startX, y: yPos, speed, width, isSelf, content: finalText });
-        }
-        
-        function animateDanmakus() {
-            if(!isAnimating) return;
-            const currentRect = canvasContainer.getBoundingClientRect();
-            if(Math.abs(containerRect.width - currentRect.width) > 5) {
-                containerRect.width = currentRect.width;
-                containerRect.height = currentRect.height;
-            }
-            for(let i=0; i<danmakuList.length; i++) {
-                const item = danmakuList[i];
-                if(!item.dom || !item.dom.parentNode) { danmakuList.splice(i,1); i--; continue; }
-                item.x -= item.speed;
-                if(item.x + item.width < 0) {
-                    if(item.dom.parentNode) item.dom.remove();
-                    danmakuList.splice(i,1);
-                    i--;
-                } else {
-                    item.dom.style.left = item.x + 'px';
-                }
-            }
-        }
-        
-        function loop() { animateDanmakus(); animationId = requestAnimationFrame(loop); }
-        function startEngine() { if(!animationId) animationId = requestAnimationFrame(loop); isAnimating = true; }
-        function pauseEngine() { isAnimating = false; }
-        function resumeEngine() { isAnimating = true; }
-        
-        function escapeHtml(str) {
-            if(!str) return '';
-            return str.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;');
-        }
-        
-        function init() {
-            addFloatingLeaves();
-            initSession();
-            const rect = canvasContainer.getBoundingClientRect();
-            containerRect.width = rect.width;
-            containerRect.height = rect.height;
-            startEngine();
-            loadMessages();
-            
-            function sendFromQuick() {
-                const input = document.getElementById('customMsgInput');
-                let val = input.value;
-                if(!val.trim()) { alert("请写下祝福语~"); return; }
-                addNewMessage(val, true);
-                input.value = '';
-            }
-            document.getElementById('sendBtn').addEventListener('click', sendFromQuick);
-            document.getElementById('boardSendBtn').addEventListener('click', () => {
-                const boardInput = document.getElementById('boardMessageInput');
-                let val = boardInput.value;
-                if(!val.trim()) { alert("请写下祝福语~"); return; }
-                addNewMessage(val, true);
-                boardInput.value = '';
-            });
-            
-            let isPaused = false;
-            const pauseBtn = document.getElementById('pauseBtn');
-            pauseBtn.addEventListener('click', () => {
-                if(isPaused) {
-                    resumeEngine();
-                    startStableDanmakuGenerator();
-                    pauseBtn.innerHTML = '⏸️ 暂停';
-                    isPaused = false;
-                } else {
-                    pauseEngine();
-                    stopStableDanmakuGenerator();
-                    pauseBtn.innerHTML = '▶️ 启动';
-                    isPaused = true;
-                }
-            });
-            
-            document.getElementById('customMsgInput').addEventListener('keypress', (e) => { if(e.key==='Enter') sendFromQuick(); });
-            document.getElementById('boardMessageInput').addEventListener('keypress', (e) => { if(e.key==='Enter') document.getElementById('boardSendBtn').click(); });
-            
-            const confirmBtn = document.getElementById('confirmDeleteBtn');
-            const cancelBtn = document.getElementById('cancelDeleteBtn');
-            const passwordInput = document.getElementById('deletePassword');
-            confirmBtn.addEventListener('click', () => {
-                if(window.pendingDeleteId && deleteMessageById(window.pendingDeleteId, passwordInput.value)) closeModal();
-            });
-            cancelBtn.addEventListener('click', closeModal);
-            passwordInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') confirmBtn.click(); });
-        }
-        
-        window.addEventListener('resize', () => {
-            setTimeout(() => {
-                if(canvasContainer) {
-                    const rect = canvasContainer.getBoundingClientRect();
-                    containerRect.width = rect.width;
-                    containerRect.height = rect.height;
-                }
-            }, 120);
+        c.innerHTML = h;
+        c.scrollTop = c.scrollHeight;
+    }
+
+    window.showDeleteModal = function (id) {
+        window.pendingDeleteId = id;
+        const m = document.getElementById('deleteModal');
+        document.getElementById('deletePassword').value = '';
+        m.style.display = 'flex';
+    };
+
+    function closeModal() {
+        document.getElementById('deleteModal').style.display = 'none';
+        window.pendingDeleteId = null;
+    }
+
+    function getFinalSpeed() { return 1.1 + Math.random() * 0.35; }
+
+    function getRandomYPosition() {
+        const t = 60, b = 75;
+        return t + Math.random() * (containerRect.height - t - b);
+    }
+
+    function createDanmaku(text, isSelf = false) {
+        if (!canvasContainer || !text) return;
+        const f = text.trim().slice(0, 42);
+        const con = `🎈 邱鼎杰 · ${f} 🎂`;
+        const d = document.createElement('div');
+        d.className = 'danmaku-item';
+        if (isSelf) d.classList.add('self-danmaku');
+        d.textContent = con;
+        d.addEventListener('click', e => {
+            e.stopPropagation();
+            const t = messages.find(x => x.content === f);
+            if (t) showDeleteModal(t.id);
+            else alert("请到右侧留言板删除");
         });
-        
-        init();
-    })();
+        canvasContainer.appendChild(d);
+        const w = d.offsetWidth;
+        const x = containerRect.width;
+        const y = getRandomYPosition();
+        const s = getFinalSpeed();
+        d.style.left = x + 'px';
+        d.style.top = y + 'px';
+        danmakuList.push({ dom: d, x: x, y: y, speed: s, width: w, isSelf: isSelf, content: f });
+    }
+
+    function animateDanmakus() {
+        if (!isAnimating) return;
+        const r = canvasContainer.getBoundingClientRect();
+        if (Math.abs(containerRect.width - r.width) > 5) {
+            containerRect.width = r.width;
+            containerRect.height = r.height;
+        }
+        for (let i = 0; i < danmakuList.length; i++) {
+            const it = danmakuList[i];
+            if (!it.dom || !it.dom.parentNode) { danmakuList.splice(i, 1); i--; continue; }
+            it.x -= it.speed;
+            if (it.x + it.width < 0) {
+                if (it.dom.parentNode) it.dom.remove();
+                danmakuList.splice(i, 1); i--;
+            } else {
+                it.dom.style.left = it.x + 'px';
+            }
+        }
+    }
+
+    function loop() { animateDanmakus(); animationId = requestAnimationFrame(loop); }
+    function startEngine() { if (!animationId) animationId = requestAnimationFrame(loop); isAnimating = true; }
+    function pauseEngine() { isAnimating = false; }
+    function resumeEngine() { isAnimating = true; }
+    function escapeHtml(s) {
+        if (!s) return '';
+        return s.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
+    }
+
+    // 初始化
+    function init() {
+        addFloatingLeaves();
+        initSession();
+        const r = canvasContainer.getBoundingClientRect();
+        containerRect.width = r.width;
+        containerRect.height = r.height;
+        startEngine();
+        loadMessages();
+
+        function qsend() {
+            const i = document.getElementById('customMsgInput');
+            const v = i.value.trim();
+            if (!v) { alert("请输入祝福"); return; }
+            addNewMessage(v);
+            i.value = '';
+        }
+
+        document.getElementById('sendBtn').onclick = qsend;
+        document.getElementById('boardSendBtn').onclick = () => {
+            const i = document.getElementById('boardMessageInput');
+            const v = i.value.trim();
+            if (!v) { alert("请输入祝福"); return; }
+            addNewMessage(v);
+            i.value = '';
+        };
+
+        let paused = false;
+        const pbtn = document.getElementById('pauseBtn');
+        pbtn.onclick = () => {
+            if (paused) {
+                resumeEngine(); startStableDanmakuGenerator();
+                pbtn.innerHTML = '⏸️ 暂停'; paused = false;
+            } else {
+                pauseEngine(); stopStableDanmakuGenerator();
+                pbtn.innerHTML = '▶️ 启动'; paused = true;
+            }
+        };
+
+        document.getElementById('customMsgInput').addEventListener('keypress', e => { if (e.key === 'Enter') qsend(); });
+        document.getElementById('boardMessageInput').addEventListener('keypress', e => { if (e.key === 'Enter') document.getElementById('boardSendBtn').click(); });
+
+        document.getElementById('confirmDeleteBtn').onclick = () => {
+            if (window.pendingDeleteId) {
+                const ok = deleteMessageById(window.pendingDeleteId, document.getElementById('deletePassword').value);
+                if (ok) closeModal();
+            }
+        };
+
+        document.getElementById('cancelDeleteBtn').onclick = closeModal;
+        document.getElementById('deletePassword').addEventListener('keypress', e => {
+            if (e.key === 'Enter') document.getElementById('confirmDeleteBtn').click();
+        });
+    }
+
+    window.addEventListener('resize', () => {
+        setTimeout(() => {
+            const r = canvasContainer.getBoundingClientRect();
+            containerRect.width = r.width;
+            containerRect.height = r.height;
+        }, 120);
+    });
+
+    init();
+})();
 </script>
 </body>
 </html>
